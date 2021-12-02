@@ -40,33 +40,8 @@ function parse_swim_instruction(instruction::String)
     (m[1], parse(Int, m[2]))
 end
 
-tuple_product(t::Tuple{Number,Number}) = t[1] * t[2]
-
-"""Given a vector of swim instructions, this method returns the final position.
-It is however using the 'part a incorrect assumption' for the determination."""
-function legacy_swim(instructions::Vector{String})::Tuple{Int,Int}
-    x = 0
-    y = 0
-    for instruction in instructions
-        dir, t = parse_swim_instruction(instruction)
-        if dir == "forward"
-            x = x + t
-        elseif dir == "down"
-            y = y + t
-        elseif dir == "up"
-            y = y - t
-        else
-            throw("direction $dir not recognized")
-        end
-    end
-    (x, y)
-end
-
-@assert 150 == @show tuple_product(legacy_swim(day02_test))
-@assert 2019945 == @show tuple_product(legacy_swim(day02_input))
-
-"""Given a vector of swim instructions, this method returns the final position."""
-function swim(instructions::Vector{String})::Tuple{Int,Int}
+"""Given a vector of swim instructions, this method returns the final position and aim value."""
+function swim(instructions::Vector{String})::Tuple{Int,Int,Int}
     aim = 0
     x = 0
     y = 0
@@ -81,8 +56,13 @@ function swim(instructions::Vector{String})::Tuple{Int,Int}
             aim = aim - t
         end
     end
-    (x, y)
+    (x, y, aim)
 end
 
-@assert 900 == @show tuple_product(swim(day02_test))
-@assert 1599311480 == @show tuple_product(swim(day02_input))
+legacy_position_product(t::Tuple) = t[1] * t[3] # x * aim
+position_product(t::Tuple) = t[1] * t[2] # x * y
+
+@assert 150 == @show legacy_position_product(swim(day02_test))
+@assert 2019945 == @show legacy_position_product(swim(day02_input))
+@assert 900 == @show position_product(swim(day02_test))
+@assert 1599311480 == @show position_product(swim(day02_input))
