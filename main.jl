@@ -25,3 +25,59 @@ end
 
 @assert 5 == @show depth_count(day1_test, 3)
 @assert 1571 == @show depth_count(day1_input, 3)
+
+
+## Day 02: Dive! ##
+###################
+
+day02_test = ["forward 5", "down 5", "forward 8", "up 3", "down 8", "forward 2"]
+day02_input = readlines(open("input-02"))
+
+function swim(instr::Vector{String})
+    x = 0
+    y = 0
+    for i in instr
+        m = match(r"forward ([0-9]+)", i)
+        if m != nothing
+            x = x + parse(Int, m[1])
+        end
+        m = match(r"down ([0-9]+)", i)
+        if m != nothing
+            y = y + parse(Int, m[1])
+        end
+        m = match(r"up ([0-9]+)", i)
+        if m != nothing
+            y = y - parse(Int, m[1])
+        end
+    end
+    x * y
+end
+
+@assert 150 == @show swim(day02_test)
+@assert 2019945 == @show swim(day02_input)
+
+
+function swim2(instr::Vector{String})
+    aim = 0
+    x = 0
+    y = 0
+    for i in instr
+        m = match(r"forward ([0-9]+)", i)
+        if m != nothing
+            x = x + parse(Int, m[1])
+            y = y + aim * parse(Int, m[1])
+        end
+        m = match(r"down ([0-9]+)", i)
+        if m != nothing
+            aim = aim + parse(Int, m[1])
+        end
+        m = match(r"up ([0-9]+)", i)
+        if m != nothing
+            aim = aim - parse(Int, m[1])
+        end
+    end
+    x * y
+end
+
+@assert 900 == @show swim2(day02_test)
+@assert 1599311480 == @show swim2(day02_input)
