@@ -54,6 +54,8 @@ function swim(instructions::Vector{String})::Tuple{Int,Int,Int}
             aim = aim + t
         elseif dir == "up"
             aim = aim - t
+        else
+            throw("Direction $dir not recognized")
         end
     end
     (x, y, aim)
