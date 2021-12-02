@@ -33,51 +33,56 @@ end
 day02_test = ["forward 5", "down 5", "forward 8", "up 3", "down 8", "forward 2"]
 day02_input = readlines(open("input-02"))
 
-function swim(instr::Vector{String})
-    x = 0
-    y = 0
-    for i in instr
-        m = match(r"forward ([0-9]+)", i)
-        if m != nothing
-            x = x + parse(Int, m[1])
-        end
-        m = match(r"down ([0-9]+)", i)
-        if m != nothing
-            y = y + parse(Int, m[1])
-        end
-        m = match(r"up ([0-9]+)", i)
-        if m != nothing
-            y = y - parse(Int, m[1])
-        end
-    end
-    x * y
+"""Tries to parse the instruction as "direction distance" code and crashes if
+that is not possible."""
+function parse_swim_instruction(instruction::String)
+    m = match(r"^(forward|down|up) ([0-9]+)$", instruction)
+    (m[1], parse(Int, m[2]))
 end
 
-@assert 150 == @show swim(day02_test)
-@assert 2019945 == @show swim(day02_input)
+tuple_product(t::Tuple{Number,Number}) = t[1] * t[2]
 
+"""Given a vector of swim instructions, this method returns the final position.
+It is however using the 'part a incorrect assumption' for the determination."""
+function legacy_swim(instructions::Vector{String})::Tuple{Int,Int}
+    x = 0
+    y = 0
+    for instruction in instructions
+        dir, t = parse_swim_instruction(instruction)
+        if dir == "forward"
+            x = x + t
+        elseif dir == "down"
+            y = y + t
+        elseif dir == "up"
+            y = y - t
+        else
+            throw("direction $dir not recognized")
+        end
+    end
+    (x, y)
+end
 
-function swim2(instr::Vector{String})
+@assert 150 == @show tuple_product(legacy_swim(day02_test))
+@assert 2019945 == @show tuple_product(legacy_swim(day02_input))
+
+"""Given a vector of swim instructions, this method returns the final position."""
+function swim(instructions::Vector{String})::Tuple{Int,Int}
     aim = 0
     x = 0
     y = 0
-    for i in instr
-        m = match(r"forward ([0-9]+)", i)
-        if m != nothing
-            x = x + parse(Int, m[1])
-            y = y + aim * parse(Int, m[1])
-        end
-        m = match(r"down ([0-9]+)", i)
-        if m != nothing
-            aim = aim + parse(Int, m[1])
-        end
-        m = match(r"up ([0-9]+)", i)
-        if m != nothing
-            aim = aim - parse(Int, m[1])
+    for instruction in instructions
+        dir, t = parse_swim_instruction(instruction)
+        if dir == "forward"
+            x = x + t
+            y = y + aim * t
+        elseif dir == "down"
+            aim = aim + t
+        elseif dir == "up"
+            aim = aim - t
         end
     end
-    x * y
+    (x, y)
 end
 
-@assert 900 == @show swim2(day02_test)
-@assert 1599311480 == @show swim2(day02_input)
+@assert 900 == @show tuple_product(swim(day02_test))
+@assert 1599311480 == @show tuple_product(swim(day02_input))
