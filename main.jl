@@ -70,97 +70,74 @@ position_product(t::Tuple) = t[1] * t[2] # x * y
 @assert 1599311480 == @show position_product(swim(day02_input))
 
 
-## Day 03: Dive! ##
-###################
+## Day 03: Binary Diagnostic ##
+###############################
 
 day03_test = ["00100", "11110", "10110", "10111", "10101", "01111", "00111", "11100", "10000", "11001", "00010", "01010"]
 day03_input = readlines(open("input-03"))
 
-function power_consumption(diagnostics::Vector{String})
-    d_length = length(diagnostics[1])
-    ones_count = zeros(d_length)
-    zeros_count = zeros(d_length)
+"""Given a vector of bit strings "00110", this returns the most common character
+at the given index. If they occur the same amount, returns 1."""
+function most_common_digit(diagnostics::Vector{String}, index::Int)::Int
+    ones_count = 0
+    zeros_count = 0
     for diagnostic in diagnostics
-        for i = 1:d_length
-            if diagnostic[i] == '1'
-                ones_count[i] += 1
-            elseif diagnostic[i] == '0'
-                zeros_count[i] += 1
-            else
-                throw("Illegal character $(diagnostic[i]) in diagnostic code")
-            end
-        end
-    end
-    gamma = 0
-    epsilon = 0
-    for i = 1:length(ones_count)
-        if ones_count[i] * 2 > length(diagnostics)
-            gamma = 2 * gamma + 1
-            epsilon = 2 * epsilon
+        char = diagnostic[index]
+        if char == '1'
+            ones_count += 1
+        elseif char == '0'
+            zeros_count += 1
         else
-            gamma = 2 * gamma
-            epsilon = 2 * epsilon + 1
+            throw("Illegal character $(diagnostic[i]) in diagnostic code")
         end
     end
-    gamma * epsilon
+    ones_count >= zeros_count ? 1 : 0
+end
+
+@assert most_common_digit(day03_test, 1) == 1
+@assert most_common_digit(day03_test, 2) == 0
+@assert most_common_digit(day03_test, 3) == 1
+@assert most_common_digit(day03_test, 4) == 1
+@assert most_common_digit(day03_test, 5) == 0
+
+"""Turns [1,0,0,1,0] into 18."""
+function parse_binary(vec::Vector)::Int
+    result = 0
+    for v in vec
+        result = 2 * result + v
+    end
+    result
+end
+
+@assert parse_binary([]) == 0
+@assert parse_binary([1, 0, 0, 1, 0]) == 18
+
+function power_consumption(diagnostics::Vector{String})
+    gamma = map(i -> most_common_digit(diagnostics, i), 1:length(diagnostics[1]))
+    epsilon = map(x -> 1 - x, gamma) # invert digits
+    parse_binary(gamma) * parse_binary(epsilon)
 end
 
 @assert 198 == @show power_consumption(day03_test)
 @assert 3959450 == @show power_consumption(day03_input) # 1565 is not the right answer
 
-
-function oxygen(diagnostics::Vector{String}, i)
-    ones_count = 0
-    zeros_count = 0
-    for diagnostic in diagnostics
-        if diagnostic[i] == '1'
-            ones_count += 1
-        elseif diagnostic[i] == '0'
-            zeros_count += 1
-        else
-            throw("Illegal character $(diagnostic[i]) in diagnostic code")
-        end
-    end
-    most_common = if ones_count >= zeros_count # equality wins for 1
-        '1'
+function find_rating(diagnostics::Vector{String}, invert = false, i = 1)::Int
+    if length(diagnostics) > 1
+        most_common = most_common_digit(diagnostics, i)
+        most_common = invert ? 1 - most_common : most_common
+        filtered_list = filter(d -> parse(Int, d[i]) == most_common, diagnostics)
+        find_rating(filtered_list, invert, i + 1)
+    elseif length(diagnostics) == 1
+        parse(Int, diagnostics[1], base = 2)
     else
-        '0'
+        throw("No unique result found")
     end
-    filter(d -> d[i] == most_common, diagnostics)
 end
 
-@show oxygen(day03_test, 1)
+@assert 23 == find_rating(day03_test) # oxygen generator
+@assert 10 == find_rating(day03_test, true) # co2 scrubber
 
-@show oxygen(oxygen(day03_test, 1), 2)
-@show oxygen(oxygen(oxygen(day03_test, 1), 2), 3)
-@show oxygen(oxygen(oxygen(oxygen(day03_test, 1), 2), 3), 4)
-@show oxygen(oxygen(oxygen(oxygen(oxygen(day03_test, 1), 2), 3), 4), 5)
+life_support_rating(diagnostics) = find_rating(diagnostics) * find_rating(diagnostics, true)
 
-
-@show oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(day03_input, 1), 2), 3), 4), 5), 6), 7), 8), 9), 10), 11), 12)
-# "011111110111" == 2039
-
-
-function co2(diagnostics::Vector{String}, i)
-    ones_count = 0
-    zeros_count = 0
-    for diagnostic in diagnostics
-        if diagnostic[i] == '1'
-            ones_count += 1
-        elseif diagnostic[i] == '0'
-            zeros_count += 1
-        else
-            throw("Illegal character $(diagnostic[i]) in diagnostic code")
-        end
-    end
-    least_common = if ones_count < zeros_count # equality wins for 0
-        '1'
-    else
-        '0'
-    end
-    filter(d -> d[i] == least_common, diagnostics)
-end
-
-@show co2(co2(co2(day03_test, 1), 2), 3)
-@show co2(co2(co2(co2(co2(co2(co2(co2(co2(day03_input, 1), 2), 3), 4), 5), 6), 7), 8), 9)
-# "111001000001" == 3649
+@assert 230 == @show life_support_rating(day03_test)
+@assert 7440311 == @show life_support_rating(day03_input)
