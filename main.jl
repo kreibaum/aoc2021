@@ -68,3 +68,99 @@ position_product(t::Tuple) = t[1] * t[2] # x * y
 @assert 2019945 == @show legacy_position_product(swim(day02_input))
 @assert 900 == @show position_product(swim(day02_test))
 @assert 1599311480 == @show position_product(swim(day02_input))
+
+
+## Day 03: Dive! ##
+###################
+
+day03_test = ["00100", "11110", "10110", "10111", "10101", "01111", "00111", "11100", "10000", "11001", "00010", "01010"]
+day03_input = readlines(open("input-03"))
+
+function power_consumption(diagnostics::Vector{String})
+    d_length = length(diagnostics[1])
+    ones_count = zeros(d_length)
+    zeros_count = zeros(d_length)
+    for diagnostic in diagnostics
+        for i = 1:d_length
+            if diagnostic[i] == '1'
+                ones_count[i] += 1
+            elseif diagnostic[i] == '0'
+                zeros_count[i] += 1
+            else
+                throw("Illegal character $(diagnostic[i]) in diagnostic code")
+            end
+        end
+    end
+    gamma = 0
+    epsilon = 0
+    for i = 1:length(ones_count)
+        if ones_count[i] * 2 > length(diagnostics)
+            gamma = 2 * gamma + 1
+            epsilon = 2 * epsilon
+        else
+            gamma = 2 * gamma
+            epsilon = 2 * epsilon + 1
+        end
+    end
+    gamma * epsilon
+end
+
+@assert 198 == @show power_consumption(day03_test)
+@assert 3959450 == @show power_consumption(day03_input) # 1565 is not the right answer
+
+
+function oxygen(diagnostics::Vector{String}, i)
+    ones_count = 0
+    zeros_count = 0
+    for diagnostic in diagnostics
+        if diagnostic[i] == '1'
+            ones_count += 1
+        elseif diagnostic[i] == '0'
+            zeros_count += 1
+        else
+            throw("Illegal character $(diagnostic[i]) in diagnostic code")
+        end
+    end
+    most_common = if ones_count >= zeros_count # equality wins for 1
+        '1'
+    else
+        '0'
+    end
+    filter(d -> d[i] == most_common, diagnostics)
+end
+
+@show oxygen(day03_test, 1)
+
+@show oxygen(oxygen(day03_test, 1), 2)
+@show oxygen(oxygen(oxygen(day03_test, 1), 2), 3)
+@show oxygen(oxygen(oxygen(oxygen(day03_test, 1), 2), 3), 4)
+@show oxygen(oxygen(oxygen(oxygen(oxygen(day03_test, 1), 2), 3), 4), 5)
+
+
+@show oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(oxygen(day03_input, 1), 2), 3), 4), 5), 6), 7), 8), 9), 10), 11), 12)
+# "011111110111" == 2039
+
+
+function co2(diagnostics::Vector{String}, i)
+    ones_count = 0
+    zeros_count = 0
+    for diagnostic in diagnostics
+        if diagnostic[i] == '1'
+            ones_count += 1
+        elseif diagnostic[i] == '0'
+            zeros_count += 1
+        else
+            throw("Illegal character $(diagnostic[i]) in diagnostic code")
+        end
+    end
+    least_common = if ones_count < zeros_count # equality wins for 0
+        '1'
+    else
+        '0'
+    end
+    filter(d -> d[i] == least_common, diagnostics)
+end
+
+@show co2(co2(co2(day03_test, 1), 2), 3)
+@show co2(co2(co2(co2(co2(co2(co2(co2(co2(day03_input, 1), 2), 3), 4), 5), 6), 7), 8), 9)
+# "111001000001" == 3649
