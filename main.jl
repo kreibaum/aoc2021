@@ -153,7 +153,8 @@ day04_input = readlines(open("input-04"))
 # A board is a Vector with 25 entries.
 # A draw state is a Boolean Vector with 25 entries
 
-function bingo(input)
+function bingo(input; find_first = true)
+    input = copy(input)
     call_order = parse.(Int, split(popfirst!(input), ","))
 
     boards = []
@@ -164,11 +165,12 @@ function bingo(input)
         end
     end
 
-    best_duration = 0
+    best_duration = find_first ? length(call_order) + 1 : 0
     score_of_best = 0
     for board in boards
-        duration, drawn = @show bingo_duration(call_order, board)
-        if duration > best_duration
+        duration, drawn = bingo_duration(call_order, board)
+        is_better = (find_first && duration < best_duration) || (!find_first && duration > best_duration)
+        if is_better
             best_duration = duration
             score_of_best = 0
             for i = 1:25
@@ -181,6 +183,9 @@ function bingo(input)
     score_of_best * call_order[best_duration]
 end
 
+"""Given a Bingo and a call order, this method marks one call at a time and 
+checks for a strait line. If there is a line, the marked pattern is returned
+alongside the duration it took to get there."""
 function bingo_duration(call_order::Vector{Int}, board::Vector{Int})::Tuple{Int,Vector{Int}}
     drawn = zeros(Int, 25)
     call_count = 0
@@ -197,45 +202,47 @@ function bingo_duration(call_order::Vector{Int}, board::Vector{Int})::Tuple{Int,
     call_count, drawn
 end
 
+"""Checks if there is a horizontal or vertical line through the call index."""
 function has_line(drawn::Vector, call_index)
-    # Vertical
+    @assert length(drawn) == 25 "Malformed drawn pattern $drawn."
+    @assert 1 <= call_index <= 25 "Call index $call_index out of bounds."
     col = (call_index - 1) % 5 + 1
-    if all(drawn[[col, col + 5, col + 10, col + 15, col + 20]] .== 1)
-        return true
-    end
-    # Horizontal
     row = call_index - col + 1
-    if all(drawn[[row, row + 1, row + 2, row + 3, row + 4]] .== 1)
-        return true
+    if all(drawn[[col, col + 5, col + 10, col + 15, col + 20]] .== 1)
+        true # Vertical
+    elseif all(drawn[[row, row + 1, row + 2, row + 3, row + 4]] .== 1)
+        true # Horizontal
+    else
+        false
     end
-    # # Diagonal /
-    # if all(drawn[[21, 17, 13, 9, 5]] .== 1)
-    #     @show 
-    #     return true
-    # end
-    # # Diagonal \
-    # if all(drawn[[1, 7, 13, 19, 25]] .== 1)
-    #     return true
-    # end
-    return false
 end
 
-"""Pop 5 lines and return a bingo board. Resistant agains empty lines."""
-function popBingoBoard!(input)::Vector{Int}
+"""Pop 25 numbers and return a bingo board. Resistant against empty lines.
+
+Returns `nothing` when there are no Bingos left.
+"""
+function popBingoBoard!(input)::Union{Vector{Int},Nothing}
     result = []
     while length(result) < 25
         if length(input) == 0
-            if length(result) > 0
-                throw("Incomplete Bingo: $result")
+            if length(result) == 0
+                return nothing
             else
-                break
+                throw("Incomplete Bingo: $result")
             end
         end
         line = parse.(Int, split(popfirst!(input)))
         append!(result, line)
     end
-    result
+    if length(result) == 25
+        result
+    else
+        throw("Malformed Bingo: $result")
+    end
 end
 
-@assert 1924 == @show bingo(day04_test)
-@assert 1284 == @show bingo(day04_input)
+@assert 4512 == @show bingo(day04_test)
+@assert 11536 == @show bingo(day04_input)
+
+@assert 1924 == @show bingo(day04_test; find_first = false)
+@assert 1284 == @show bingo(day04_input; find_first = false)
