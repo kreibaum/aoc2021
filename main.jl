@@ -164,11 +164,11 @@ function bingo(input)
         end
     end
 
-    best_duration = length(call_order) + 1
+    best_duration = 0
     score_of_best = 0
     for board in boards
         duration, drawn = @show bingo_duration(call_order, board)
-        if duration < best_duration
+        if duration > best_duration
             best_duration = duration
             score_of_best = 0
             for i = 1:25
@@ -237,5 +237,5 @@ function popBingoBoard!(input)::Vector{Int}
     result
 end
 
-@show bingo(day04_test)
-@show bingo(day04_input)
+@assert 1924 == @show bingo(day04_test)
+@assert 1284 == @show bingo(day04_input)
