@@ -141,3 +141,101 @@ life_support_rating(diagnostics) = find_rating(diagnostics) * find_rating(diagno
 
 @assert 230 == @show life_support_rating(day03_test)
 @assert 7440311 == @show life_support_rating(day03_input)
+
+
+## Day 04: Giant Squid ##
+#########################
+
+
+day04_test = readlines(open("test-04"))
+day04_input = readlines(open("input-04"))
+
+# A board is a Vector with 25 entries.
+# A draw state is a Boolean Vector with 25 entries
+
+function bingo(input)
+    call_order = parse.(Int, split(popfirst!(input), ","))
+
+    boards = []
+    while length(input) > 0
+        board = popBingoBoard!(input)
+        if length(board) > 0
+            push!(boards, board)
+        end
+    end
+
+    best_duration = length(call_order) + 1
+    score_of_best = 0
+    for board in boards
+        duration, drawn = @show bingo_duration(call_order, board)
+        if duration < best_duration
+            best_duration = duration
+            score_of_best = 0
+            for i = 1:25
+                if drawn[i] == 0
+                    score_of_best += board[i]
+                end
+            end
+        end
+    end
+    score_of_best * call_order[best_duration]
+end
+
+function bingo_duration(call_order::Vector{Int}, board::Vector{Int})::Tuple{Int,Vector{Int}}
+    drawn = zeros(Int, 25)
+    call_count = 0
+    for call in call_order
+        call_count += 1
+        call_index = findfirst(x -> x == call, board)
+        if call_index !== nothing
+            drawn[call_index] = 1
+            if has_line(drawn, call_index)
+                break
+            end
+        end
+    end
+    call_count, drawn
+end
+
+function has_line(drawn::Vector, call_index)
+    # Vertical
+    col = (call_index - 1) % 5 + 1
+    if all(drawn[[col, col + 5, col + 10, col + 15, col + 20]] .== 1)
+        return true
+    end
+    # Horizontal
+    row = call_index - col + 1
+    if all(drawn[[row, row + 1, row + 2, row + 3, row + 4]] .== 1)
+        return true
+    end
+    # # Diagonal /
+    # if all(drawn[[21, 17, 13, 9, 5]] .== 1)
+    #     @show 
+    #     return true
+    # end
+    # # Diagonal \
+    # if all(drawn[[1, 7, 13, 19, 25]] .== 1)
+    #     return true
+    # end
+    return false
+end
+
+"""Pop 5 lines and return a bingo board. Resistant agains empty lines."""
+function popBingoBoard!(input)::Vector{Int}
+    result = []
+    while length(result) < 25
+        if length(input) == 0
+            if length(result) > 0
+                throw("Incomplete Bingo: $result")
+            else
+                break
+            end
+        end
+        line = parse.(Int, split(popfirst!(input)))
+        append!(result, line)
+    end
+    result
+end
+
+@show bingo(day04_test)
+@show bingo(day04_input)
