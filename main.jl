@@ -254,7 +254,7 @@ end
 day05_test = readlines(open("test-05"))
 day05_input = readlines(open("input-05"))
 
-function vent_intersections(data)
+function vent_intersections(data; skip_diagonals = false)
     diagramm = Dict()
     for d in data
         m = match(r"([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)", d)
@@ -267,6 +267,21 @@ function vent_intersections(data)
         elseif m[2] == m[4]
             y = parse(Int, m[2])
             for x in r(parse(Int, m[1]), parse(Int, m[3]))
+                v = get(diagramm, (x, y), 0)
+                diagramm[(x, y)] = v+1
+            end
+        elseif skip_diagonals
+            continue
+        else
+            x1 = parse(Int, m[1])
+            y1 = parse(Int, m[2])
+            x2 = parse(Int, m[3])
+            y2 = parse(Int, m[4])
+            dx = x1 < x2 ? 1 : -1
+            dy = y1 < y2 ? 1 : -1
+            for i in 0:(abs(x2-x1))
+                x = x1 + i * dx
+                y = y1 + i * dy
                 v = get(diagramm, (x, y), 0)
                 diagramm[(x, y)] = v+1
             end
@@ -283,5 +298,8 @@ end
 
 r(a, b) = a < b ? (a:b) : (b:a)
 
-@assert 5 == @show vent_intersections(day05_test)
-@assert 6007 == @show vent_intersections(day05_input)
+@assert 5 == @show vent_intersections(day05_test; skip_diagonals = true)
+@assert 6007 == @show vent_intersections(day05_input; skip_diagonals = true)
+
+@assert 12 == @show vent_intersections(day05_test)
+@assert 19349 == @show vent_intersections(day05_input)
