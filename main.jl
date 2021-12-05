@@ -246,3 +246,42 @@ end
 
 @assert 1924 == @show bingo(day04_test; find_first = false)
 @assert 1284 == @show bingo(day04_input; find_first = false)
+
+
+## Day 05: Hydrothermal Venture ##
+##################################
+
+day05_test = readlines(open("test-05"))
+day05_input = readlines(open("input-05"))
+
+function vent_intersections(data)
+    diagramm = Dict()
+    for d in data
+        m = match(r"([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)", d)
+        if m[1] == m[3]
+            x = parse(Int, m[1])
+            for y in r(parse(Int, m[2]), parse(Int, m[4]))
+                v = get(diagramm, (x, y), 0)
+                diagramm[(x, y)] = v+1
+            end
+        elseif m[2] == m[4]
+            y = parse(Int, m[2])
+            for x in r(parse(Int, m[1]), parse(Int, m[3]))
+                v = get(diagramm, (x, y), 0)
+                diagramm[(x, y)] = v+1
+            end
+        end
+    end
+    intersects = 0
+    for (_key, value) in diagramm
+        if value > 1
+            intersects += 1
+        end
+    end
+    intersects
+end
+
+r(a, b) = a < b ? (a:b) : (b:a)
+
+@assert 5 == @show vent_intersections(day05_test)
+@assert 6007 == @show vent_intersections(day05_input)
