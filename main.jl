@@ -262,13 +262,13 @@ function vent_intersections(data; skip_diagonals = false)
             x = parse(Int, m[1])
             for y in r(parse(Int, m[2]), parse(Int, m[4]))
                 v = get(diagramm, (x, y), 0)
-                diagramm[(x, y)] = v+1
+                diagramm[(x, y)] = v + 1
             end
         elseif m[2] == m[4]
             y = parse(Int, m[2])
             for x in r(parse(Int, m[1]), parse(Int, m[3]))
                 v = get(diagramm, (x, y), 0)
-                diagramm[(x, y)] = v+1
+                diagramm[(x, y)] = v + 1
             end
         elseif skip_diagonals
             continue
@@ -279,11 +279,11 @@ function vent_intersections(data; skip_diagonals = false)
             y2 = parse(Int, m[4])
             dx = x1 < x2 ? 1 : -1
             dy = y1 < y2 ? 1 : -1
-            for i in 0:(abs(x2-x1))
+            for i = 0:(abs(x2 - x1))
                 x = x1 + i * dx
                 y = y1 + i * dy
                 v = get(diagramm, (x, y), 0)
-                diagramm[(x, y)] = v+1
+                diagramm[(x, y)] = v + 1
             end
         end
     end
@@ -303,3 +303,6 @@ r(a, b) = a < b ? (a:b) : (b:a)
 
 @assert 12 == @show vent_intersections(day05_test)
 @assert 19349 == @show vent_intersections(day05_input)
+
+
+
