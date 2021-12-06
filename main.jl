@@ -305,4 +305,53 @@ r(a, b) = a < b ? (a:b) : (b:a)
 @assert 19349 == @show vent_intersections(day05_input)
 
 
+## Day 06: Lanternfish ##
+#########################
 
+day06_test = [3, 4, 3, 1, 2]
+day06_input = parse.(Int, split(read(open("input-06"), String), ","))
+
+function group_fish(fish_list::Vector{Int})::Dict{Int,Int}
+    groups = Dict{Int,Int}()
+    for fish in fish_list
+        groups[fish] = get(groups, fish, 0) + 1
+    end
+    groups
+end
+
+@assert group_fish(day06_test) == Dict(1 => 1, 2 => 1, 3 => 2, 4 => 1)
+
+function pass_time(fish_dict::Dict{Int,Int})::Dict{Int,Int}
+    groups = Dict{Int,Int}()
+    for (time, count) in fish_dict
+        if time == 0
+            # Special case where we spawn offspring
+            groups[8] = get(groups, 8, 0) + count
+            groups[6] = get(groups, 6, 0) + count
+        else
+            groups[time-1] = get(groups, time - 1, 0) + count
+        end
+    end
+    groups
+end
+
+function pass_time(fish_dict::Dict{Int,Int}, repeats::Int)::Dict{Int,Int}
+    @assert repeats >= 0 "Passed in a negative repeat count $repeats which is invalid."
+    if repeats == 0
+        fish_dict
+    else
+        pass_time(pass_time(fish_dict), repeats - 1)
+    end
+end
+
+count_fish(fish_dict) = sum(values(fish_dict))
+
+@assert pass_time(group_fish(day06_test)) == Dict(0 => 1, 1 => 1, 2 => 2, 3 => 1)
+@assert pass_time(group_fish(day06_test), 2) == Dict(6 => 1, 8 => 1, 0 => 1, 1 => 2, 2 => 1)
+
+@assert 5934 == @show count_fish(pass_time(group_fish(day06_test), 80))
+@assert 362639 == @show count_fish(pass_time(group_fish(day06_input), 80))
+
+
+@assert 26984457539 == @show count_fish(pass_time(group_fish(day06_test), 256))
+@assert 1639854996917 == @show count_fish(pass_time(group_fish(day06_input), 256))
