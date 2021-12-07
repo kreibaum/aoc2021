@@ -352,6 +352,39 @@ count_fish(fish_dict) = sum(values(fish_dict))
 @assert 5934 == @show count_fish(pass_time(group_fish(day06_test), 80))
 @assert 362639 == @show count_fish(pass_time(group_fish(day06_input), 80))
 
-
 @assert 26984457539 == @show count_fish(pass_time(group_fish(day06_test), 256))
 @assert 1639854996917 == @show count_fish(pass_time(group_fish(day06_input), 256))
+
+
+## Day 07: The Treachery of Whales ##
+#####################################
+
+day07_test = [16, 1, 2, 0, 4, 2, 7, 1, 2, 14]
+day07_input = parse.(Int, split(read(open("input-07"), String), ","))
+
+using Statistics # median
+
+function crab_distance(crabs::Vector{Int})
+    m = Int(floor(Statistics.median(crabs)))
+    sum(abs.(crabs .- m))
+end
+
+@assert 37 == @show crab_distance(day07_test)
+@assert 356992 == @show crab_distance(day07_input)
+
+function crab_distance_2(crabs::Vector{Int})
+    m = mean(crabs)
+    fuel1 = sum(square_fuel.(abs.(crabs .- Int(floor(m)))))
+    fuel2 = sum(square_fuel.(abs.(crabs .- Int(ceil(m)))))
+    min(fuel1, fuel2)
+end
+
+square_fuel(d) = Int(d * (d + 1) / 2)
+
+@assert square_fuel(0) == 0
+@assert square_fuel(1) == 1
+@assert square_fuel(2) == 3
+@assert square_fuel(3) == 6
+
+@assert 168 == @show crab_distance_2(day07_test)
+@assert 101268110 == @show crab_distance_2(day07_input)
