@@ -396,7 +396,7 @@ square_fuel(d) = Int(d * (d + 1) / 2)
 day08_test = readlines(open("test-08"))
 day08_input = readlines(open("input-08"))
 
-function easy_numbers(data)
+function easy_7_digit_numbers(data)
     count = 0
     for d in data
         output = split(d, "|")[2]
@@ -410,10 +410,10 @@ function easy_numbers(data)
     count
 end
 
-@assert 26 == @show easy_numbers(day08_test)
-@show easy_numbers(day08_input)
+@assert 26 == @show easy_7_digit_numbers(day08_test)
+@assert 344 == @show easy_7_digit_numbers(day08_input)
 
-# Part 2 seems really hard. Backtracking?
+# Part 2 seems really hard.
 
 #  4444
 # 5    1
@@ -423,7 +423,7 @@ end
 # 7    2
 #  3333
 
-to_digit = Dict(
+segments_to_digit = Dict(
     Set([1, 2, 3, 4, 5, 7]) => 0, Set([1, 2]) => 1, Set([4, 1, 6, 7, 3]) => 2,
     Set([4, 1, 6, 2, 3]) => 3, Set([1, 2, 5, 6]) => 4, Set([4, 5, 6, 2, 3]) => 5,
     Set([2, 3, 4, 5, 6, 7]) => 6, Set([4, 1, 2]) => 7,
@@ -432,20 +432,20 @@ to_digit = Dict(
 # Seems like we have all 10 numbers in a random order each time. So we should be
 # able to solve it the same way every time.
 
-function solve(data)
+function solve_7_digit_puzzle(data)
     input = split(data, "|")[1]
     in_group = Set.(split(input))
     # Solve
-    eight = gib!(in_group, 7)
-    one = gib!(in_group, 2)
-    seven = gib!(in_group, 3)
+    eight = grab!(in_group, 7)
+    one = grab!(in_group, 2)
+    seven = grab!(in_group, 3)
     l4 = first(setdiff(seven, one)) # Seven minus one leaves the top letter.
-    six = gib_if!(in_group, x -> length(x) == 6 && length(intersect(one, x)) == 1)
+    six = grab_if!(in_group, x -> length(x) == 6 && length(intersect(one, x)) == 1)
     l1 = first(setdiff(one, six))
     l2 = first(intersect(one, six))
-    four = gib!(in_group, 4)
-    zero = gib_if!(in_group, x -> length(x) == 6 && length(intersect(four, x)) == 3)
-    nine = gib_if!(in_group, x -> length(x) == 6 && length(intersect(four, x)) == 4)
+    four = grab!(in_group, 4)
+    zero = grab_if!(in_group, x -> length(x) == 6 && length(intersect(four, x)) == 3)
+    nine = grab_if!(in_group, x -> length(x) == 6 && length(intersect(four, x)) == 4)
     l6 = first(setdiff(eight, zero))
     l7 = first(setdiff(eight, nine))
     l5 = first(setdiff(four, Set([l1, l2, l6])))
@@ -459,16 +459,13 @@ function solve(data)
     out_groups = Set.(split(output))
     for group in out_groups
         g = Set([mapping[c] for c in group])
-        total = 10 * total + to_digit[g]
+        total = 10 * total + segments_to_digit[g]
     end
     total
 end
 
+grab!(vec, l) = grab_if!(vec, x -> length(x) == l)
+grab_if!(vec, test) = popat!(vec, findfirst(test, vec))
 
-gib!(vec, l) = gib_if!(vec, x -> length(x) == l)
-gib_if!(vec, test) = popat!(vec, findfirst(test, vec))
-
-@show solve(day08_testcase)
-
-@assert 61229 == @show sum(solve.(day08_test))
-@assert 1048410 == @show sum(solve.(day08_input))
+@assert 61229 == @show sum(solve_7_digit_puzzle.(day08_test))
+@assert 1048410 == @show sum(solve_7_digit_puzzle.(day08_input))
