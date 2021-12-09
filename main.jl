@@ -481,7 +481,7 @@ day09_test = ["2199943210",
     "9899965678"]
 day09_input = readlines(open("input-09"))
 
-function height_map(input)
+function height_map(input::Vector{String})::Array{Int,2}
     h = length(input)
     w = length(input[1])
     h_map = zeros(Int, (w, h))
@@ -492,36 +492,10 @@ function height_map(input)
     h_map
 end
 
-function count_mins(h_map)
-    w, h = size(h_map)
-    total = 0
-    for x = 1:w, y = 1:h
-        v = h_map[x, y]
-        if x >= 2 && h_map[x-1, y] <= v
-            continue
-        elseif x < w && h_map[x+1, y] <= v
-            continue
-        elseif y >= 2 && h_map[x, y-1] <= v
-            continue
-        elseif y < h && h_map[x, y+1] <= v
-            continue
-        end
-        total += 1 + v
-    end
-    total
-end
-
-@assert 15 == @show count_mins(height_map(day09_test))
-@assert 439 == @show count_mins(height_map(day09_input))
-
-# Now for part 2 I need to find connected regions that are divided by 9s.
-# Sounds like I need some kind of flood-fill algorithm.
-# I remember a tree-like structure from university I could use, but finding that
-# again is likely not time efficient.
-
-function get_mins(h_map)
+function get_basin_mins(h_map::Array{Int,2})::Tuple{Vector{Tuple{Int,Int}},Int}
     w, h = size(h_map)
     mins = []
+    score = 0
     for x = 1:w, y = 1:h
         v = h_map[x, y]
         if x >= 2 && h_map[x-1, y] <= v
@@ -534,12 +508,19 @@ function get_mins(h_map)
             continue
         end
         push!(mins, (x, y))
+        score += 1 + v
     end
-    mins
+    (mins, score)
 end
 
-function basins(h_map)
-    mins = get_mins(h_map)
+@assert 15 == @show get_basin_mins(height_map(day09_test))[2]
+@assert 439 == @show get_basin_mins(height_map(day09_input))[2]
+
+# Now for part 2 I need to find connected regions that are divided by 9s.
+# Sounds like I need some kind of flood-fill algorithm.
+
+function basins(h_map::Array{Int,2})::Int
+    mins = get_basin_mins(h_map)[1]
     sizes = []
     for (x, y) in mins
         b_size = flood_fill(h_map, x, y)
@@ -548,32 +529,29 @@ function basins(h_map)
     prod(sort(sizes)[end-2:end])
 end
 
-function flood_fill(h_map, x, y)
+function flood_fill(h_map::Array{Int,2}, x::Int, y::Int)::Int
     is_inside = zeros(Bool, size(h_map))
-    flood_fill(h_map, x, y, is_inside)
+    flood_fill!(is_inside, h_map, x, y)
     sum(is_inside)
 end
 
-function flood_fill(h_map, x, y, is_inside)
-    if is_inside[x, y]
-        return
-    end
+function flood_fill!(is_inside::Array{Bool,2}, h_map::Array{Int,2}, x::Int, y::Int)
     is_inside[x, y] = true
     w, h = size(h_map)
     if x >= 2 && h_map[x-1, y] != 9 && !is_inside[x-1, y]
-        flood_fill(h_map, x - 1, y, is_inside)
+        flood_fill!(is_inside, h_map, x - 1, y)
     end
     if x < w && h_map[x+1, y] != 9 && !is_inside[x+1, y]
-        flood_fill(h_map, x + 1, y, is_inside)
+        flood_fill!(is_inside, h_map, x + 1, y)
     end
     if y >= 2 && h_map[x, y-1] != 9 && !is_inside[x, y-1]
-        flood_fill(h_map, x, y - 1, is_inside)
+        flood_fill!(is_inside, h_map, x, y - 1)
     end
     if y < h && h_map[x, y+1] != 9 && !is_inside[x, y+1]
-        flood_fill(h_map, x, y + 1, is_inside)
+        flood_fill!(is_inside, h_map, x, y + 1)
     end
 end
 
-
 @assert 1134 == @show basins(height_map(day09_test))
 @assert 900900 == @show basins(height_map(day09_input))
+
