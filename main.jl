@@ -472,7 +472,7 @@ grab_if!(vec, test) = popat!(vec, findfirst(test, vec))
 
 
 ## Day 09: Smoke Basin ##
-##################################
+#########################
 
 day09_test = ["2199943210",
     "3987894921",
@@ -513,3 +513,67 @@ end
 
 @assert 15 == @show count_mins(height_map(day09_test))
 @assert 439 == @show count_mins(height_map(day09_input))
+
+# Now for part 2 I need to find connected regions that are divided by 9s.
+# Sounds like I need some kind of flood-fill algorithm.
+# I remember a tree-like structure from university I could use, but finding that
+# again is likely not time efficient.
+
+function get_mins(h_map)
+    w, h = size(h_map)
+    mins = []
+    for x = 1:w, y = 1:h
+        v = h_map[x, y]
+        if x >= 2 && h_map[x-1, y] <= v
+            continue
+        elseif x < w && h_map[x+1, y] <= v
+            continue
+        elseif y >= 2 && h_map[x, y-1] <= v
+            continue
+        elseif y < h && h_map[x, y+1] <= v
+            continue
+        end
+        push!(mins, (x, y))
+    end
+    mins
+end
+
+function basins(h_map)
+    mins = get_mins(h_map)
+    sizes = []
+    for (x, y) in mins
+        b_size = flood_fill(h_map, x, y)
+        push!(sizes, b_size)
+    end
+    prod(sort(sizes)[end-2:end])
+end
+
+function flood_fill(h_map, x, y)
+    is_inside = zeros(Bool, size(h_map))
+    flood_fill(h_map, x, y, is_inside)
+    sum(is_inside)
+end
+
+function flood_fill(h_map, x, y, is_inside)
+    if is_inside[x, y]
+        return
+    end
+    is_inside[x, y] = true
+    w, h = size(h_map)
+    if x >= 2 && h_map[x-1, y] != 9 && !is_inside[x-1, y]
+        flood_fill(h_map, x - 1, y, is_inside)
+    end
+    if x < w && h_map[x+1, y] != 9 && !is_inside[x+1, y]
+        flood_fill(h_map, x + 1, y, is_inside)
+    end
+    if y >= 2 && h_map[x, y-1] != 9 && !is_inside[x, y-1]
+        flood_fill(h_map, x, y - 1, is_inside)
+    end
+    if y < h && h_map[x, y+1] != 9 && !is_inside[x, y+1]
+        flood_fill(h_map, x, y + 1, is_inside)
+    end
+end
+
+
+@assert 1134 == @show basins(height_map(day09_test))
+@assert 900900 == @show basins(height_map(day09_input))
