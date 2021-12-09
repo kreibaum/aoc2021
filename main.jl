@@ -390,8 +390,8 @@ square_fuel(d) = Int(d * (d + 1) / 2)
 @assert 101268110 == @show crab_distance_2(day07_input)
 
 
-## Day 08:  ##
-#####################################
+## Day 08: Seven Segment Search ##
+##################################
 
 day08_test = readlines(open("test-08"))
 day08_input = readlines(open("input-08"))
@@ -469,3 +469,47 @@ grab_if!(vec, test) = popat!(vec, findfirst(test, vec))
 
 @assert 61229 == @show sum(solve_7_digit_puzzle.(day08_test))
 @assert 1048410 == @show sum(solve_7_digit_puzzle.(day08_input))
+
+
+## Day 09: Smoke Basin ##
+##################################
+
+day09_test = ["2199943210",
+    "3987894921",
+    "9856789892",
+    "8767896789",
+    "9899965678"]
+day09_input = readlines(open("input-09"))
+
+function height_map(input)
+    h = length(input)
+    w = length(input[1])
+    h_map = zeros(Int, (w, h))
+
+    for y = 1:h, x = 1:w
+        h_map[x, y] = parse(Int, input[y][x])
+    end
+    h_map
+end
+
+function count_mins(h_map)
+    w, h = size(h_map)
+    total = 0
+    for x = 1:w, y = 1:h
+        v = h_map[x, y]
+        if x >= 2 && h_map[x-1, y] <= v
+            continue
+        elseif x < w && h_map[x+1, y] <= v
+            continue
+        elseif y >= 2 && h_map[x, y-1] <= v
+            continue
+        elseif y < h && h_map[x, y+1] <= v
+            continue
+        end
+        total += 1 + v
+    end
+    total
+end
+
+@assert 15 == @show count_mins(height_map(day09_test))
+@assert 439 == @show count_mins(height_map(day09_input))
