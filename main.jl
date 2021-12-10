@@ -562,6 +562,9 @@ end
 day10_test = readlines(open("test-10"))
 day10_input = readlines(open("input-10"))
 
+closing_brackets = Dict('(' => ')', '[' => ']', '{' => '}', '<' => '>')
+bracket_score = Dict('(' => 1, '[' => 2, '{' => 3, '<' => 4, ')' => 3, ']' => 57, '}' => 1197, '>' => 25137, nothing => 0)
+
 function corrupted(line)
     stack = []
     for char in line
@@ -573,13 +576,7 @@ function corrupted(line)
             return char
         end
         opening = pop!(stack)
-        if char == ')' && opening != '('
-            return char
-        elseif char == ']' && opening != '['
-            return char
-        elseif char == '>' && opening != '<'
-            return char
-        elseif char == '}' && opening != '{'
+        if char != closing_brackets[opening]
             return char
         end
     end
@@ -587,20 +584,7 @@ function corrupted(line)
 end
 
 function corruption_score(line)
-    symbol = corrupted(line)
-    if symbol === nothing
-        0
-    elseif symbol == ')'
-        3
-    elseif symbol == ']'
-        57
-    elseif symbol == '}'
-        1197
-    elseif symbol == '>'
-        25137
-    else
-        throw("bad symbol $symbol")
-    end
+    bracket_score[corrupted(line)]
 end
 
 @assert 26397 == @show sum(corruption_score.(day10_test))
@@ -619,13 +603,7 @@ function closing_stack(line)
             throw("corrupted")
         end
         opening = pop!(stack)
-        if char == ')' && opening != '('
-            throw("corrupted")
-        elseif char == ']' && opening != '['
-            throw("corrupted")
-        elseif char == '>' && opening != '<'
-            throw("corrupted")
-        elseif char == '}' && opening != '{'
+        if char != closing_brackets[opening]
             throw("corrupted")
         end
     end
@@ -639,18 +617,7 @@ function closing_score(line)
         stack = closing_stack(line)
         v = 0
         for c in reverse(stack)
-            v = 5 * v
-            if c == '('
-                v += 1
-            elseif c == '['
-                v += 2
-            elseif c == '{'
-                v += 3
-            elseif c == '<'
-                v += 4
-            else
-                throw("not a bracket $c")
-            end
+            v = 5 * v + bracket_score[c]
         end
         v
     end
@@ -658,7 +625,7 @@ end
 
 function middle_score(lines::Vector{String})::Int
     scores = filter(x -> x > 0, closing_score.(lines))
-    sort(scores)[Int((1 + end) / 2)]
+    sort(scores)[div(1 + end, 2)]
 end
 
 @assert 288957 == @show middle_score(day10_test)
