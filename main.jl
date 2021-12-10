@@ -556,10 +556,11 @@ end
 @assert 900900 == @show basins(height_map(day09_input))
 
 
-## Day 10
+## Day 10: Syntax Scoring ##
+############################
 
-day09_test = readlines(open("test-10"))
-day09_input = readlines(open("input-10"))
+day10_test = readlines(open("test-10"))
+day10_input = readlines(open("input-10"))
 
 function corrupted(line)
     stack = []
@@ -602,8 +603,10 @@ function corruption_score(line)
     end
 end
 
-# Part two
+@assert 26397 == @show sum(corruption_score.(day10_test))
+@assert 315693 == @show sum(corruption_score.(day10_input))
 
+# Part two
 
 function closing_stack(line)
     stack = []
@@ -652,3 +655,11 @@ function closing_score(line)
         v
     end
 end
+
+function middle_score(lines::Vector{String})::Int
+    scores = filter(x -> x > 0, closing_score.(lines))
+    sort(scores)[Int((1 + end) / 2)]
+end
+
+@assert 288957 == @show middle_score(day10_test)
+@assert 1870887234 == @show middle_score(day10_input)
