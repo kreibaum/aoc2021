@@ -555,3 +555,100 @@ end
 @assert 1134 == @show basins(height_map(day09_test))
 @assert 900900 == @show basins(height_map(day09_input))
 
+
+## Day 10
+
+day09_test = readlines(open("test-10"))
+day09_input = readlines(open("input-10"))
+
+function corrupted(line)
+    stack = []
+    for char in line
+        if char in "([<{"
+            push!(stack, char)
+            continue
+        end
+        if length(stack) == 0
+            return char
+        end
+        opening = pop!(stack)
+        if char == ')' && opening != '('
+            return char
+        elseif char == ']' && opening != '['
+            return char
+        elseif char == '>' && opening != '<'
+            return char
+        elseif char == '}' && opening != '{'
+            return char
+        end
+    end
+    return nothing
+end
+
+function corruption_score(line)
+    symbol = corrupted(line)
+    if symbol === nothing
+        0
+    elseif symbol == ')'
+        3
+    elseif symbol == ']'
+        57
+    elseif symbol == '}'
+        1197
+    elseif symbol == '>'
+        25137
+    else
+        throw("bad symbol $symbol")
+    end
+end
+
+# Part two
+
+
+function closing_stack(line)
+    stack = []
+    for char in line
+        if char in "([<{"
+            push!(stack, char)
+            continue
+        end
+        if length(stack) == 0
+            throw("corrupted")
+        end
+        opening = pop!(stack)
+        if char == ')' && opening != '('
+            throw("corrupted")
+        elseif char == ']' && opening != '['
+            throw("corrupted")
+        elseif char == '>' && opening != '<'
+            throw("corrupted")
+        elseif char == '}' && opening != '{'
+            throw("corrupted")
+        end
+    end
+    stack
+end
+
+function closing_score(line)
+    if corruption_score(line) > 0
+        0
+    else
+        stack = closing_stack(line)
+        v = 0
+        for c in reverse(stack)
+            v = 5 * v
+            if c == '('
+                v += 1
+            elseif c == '['
+                v += 2
+            elseif c == '{'
+                v += 3
+            elseif c == '<'
+                v += 4
+            else
+                throw("not a bracket $c")
+            end
+        end
+        v
+    end
+end
