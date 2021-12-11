@@ -630,3 +630,88 @@ end
 
 @assert 288957 == @show middle_score(day10_test)
 @assert 1870887234 == @show middle_score(day10_input)
+
+
+## Day 11: Dumbo Octopus ##
+###########################
+
+day11_test = readlines(open("test-11"))
+day11_input = readlines(open("input-11"))
+
+function octopus_input(lines::Vector{String})::Array{Int,2}
+    result = zeros(Int, 10, 10)
+    for x = 1:10, y = 1:10
+        result[x, y] = parse(Int, lines[y][x])
+    end
+    result
+end
+
+function octopus_step!(octo_grid)
+    octo_grid .+= 1
+    # Recursive flashing
+    flashed = zeros(Bool, 10, 10)
+    for x = 1:10, y = 1:10
+        if flashed[x, y]
+            continue
+        end
+        if octo_grid[x, y] > 9
+            octo_flash_recurse!(octo_grid, flashed, x, y)
+        end
+    end
+    # Reset every high octopus
+    for x = 1:10, y = 1:10
+        if flashed[x, y]
+            octo_grid[x, y] = 0
+        end
+    end
+    # Return the number of octopi that have flashed.
+    sum(flashed)
+end
+
+function octo_flash_recurse!(octo_grid, flashed, x, y)
+    flashed[x, y] = true
+    triggered = octo_flash!(octo_grid, x, y)
+    for octo in triggered
+        if !flashed[octo[1], octo[2]]
+            octo_flash_recurse!(octo_grid, flashed, octo[1], octo[2])
+        end
+    end
+end
+
+function octo_flash!(octo_grid, x, y)::Vector{Tuple{Int,Int}}
+    triggered = []
+    for dx = -1:1, dy = -1:1
+        if dx == 0 && dy == 0
+            continue
+        elseif 1 <= x + dx <= 10 && 1 <= y + dy <= 10
+            octo_grid[x+dx, y+dy] += 1
+            if octo_grid[x+dx, y+dy] > 9
+                push!(triggered, (x + dx, y + dy))
+            end
+        end
+    end
+    triggered
+end
+
+# a = octopus_input(day11_input)
+# c = 0
+# for i = 1:100
+#     global c
+#     c = c + @show octopus_step!(a)
+# end
+# @show c
+
+# Solution = 1681
+
+# Part 2
+
+a = octopus_input(day11_input)
+for i = 1:1000000
+    c = octopus_step!(a)
+    if c == 100
+        @show i
+        break
+    end
+end
+
+# Solution = 276
