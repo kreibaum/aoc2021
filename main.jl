@@ -781,6 +781,63 @@ end
 ## Day 13: Transparent Origami ##
 #################################
 
+day13_test = readlines(open("test-13"))
+day13_input = readlines(open("input-13"))
+
+function transparent_paper_code(data)
+    dots = Set()
+    instructions = []
+    for i = 1:length(data)
+        m = match(r"^([0-9]+),([0-9]+)$", data[i])
+        if m !== nothing
+            push!(dots, (parse(Int, m[1]), parse(Int, m[2])))
+            continue
+        end
+        m = match(r"^fold along ([xy])=([0-9]+)$", data[i])
+        if m !== nothing
+            push!(instructions, (m[1], parse(Int, m[2])))
+            continue
+        end
+    end
+
+    for instr in instructions
+        new_dots = Set()
+        if instr[1] == "x"
+            for dot in dots
+                if dot[1] > instr[2]
+                    push!(new_dots, (2 * instr[2] - dot[1], dot[2]))
+                else
+                    push!(new_dots, dot)
+                end
+            end
+        elseif instr[1] == "y"
+            for dot in dots
+                if dot[2] > instr[2]
+                    push!(new_dots, (dot[1], 2 * instr[2] - dot[2]))
+                else
+                    push!(new_dots, dot)
+                end
+            end
+        end
+
+        dots = new_dots
+    end
+
+    # get bounding box of tuples
+
+
+
+    matrix = zeros(Int, (maximum(t -> t[1], dots) + 1, maximum(t -> t[2], dots) + 1))
+    for dot in dots
+        matrix[dot[1]+1, dot[2]+1] = 1
+    end
+    matrix
+end
+
+# Solutions found interactively.
+# transparent_paper_code(day13_test)
+# @show transpose(transparent_paper_code(day13_input))
+
 ## Day 14: Extended Polymerization ##
 #####################################
 
