@@ -780,3 +780,49 @@ end
 
 @assert 1588 == @show polymer_difference(day14_test)
 @assert 2740 == @show polymer_difference(day14_input)
+
+# Part 2 is getting harder, need some memoization I think.
+
+function memoize_polymer(rules, max_depth)
+    memory = Dict()
+    # Initial knowledge: Each rule evaluates to the left letter if there there
+    # are no other polymerization steps left.
+    for pair in keys(rules)
+        memory[(pair, 0)] = Dict(pair[1] => 1)
+    end
+    for depth = 1:max_depth
+        for pair in keys(rules)
+            # @show pair, rules
+            left_pair = String([pair[1], rules[pair]])
+            right_pair = String([rules[pair], pair[2]])
+            values = merge(+, memory[(left_pair, depth - 1)], memory[(right_pair, depth - 1)])
+            memory[(pair, depth)] = values
+        end
+    end
+    memory
+end
+
+function polymer_score(data, depth)
+    memory = memoize_polymer(polymer_rules(data), depth)
+    starting_poylmer = data[1]
+
+    total = Dict()
+
+    left = starting_poylmer[1]
+    for i = 2:length(starting_poylmer)
+        right = starting_poylmer[i]
+        key = (String([left, right]), depth)
+        total = merge(+, total, memory[key])
+        left = right
+    end
+
+    total = merge(+, total, Dict(left => 1))
+
+    maximum(values(total)) - minimum(values(total))
+end
+
+@assert 1588 == @show polymer_score(day14_test, 10)
+@assert 2740 == @show polymer_score(day14_input, 10)
+
+@assert 2188189693529 == @show polymer_score(day14_test, 40)
+@assert 2959788056211 == @show polymer_score(day14_input, 40)
