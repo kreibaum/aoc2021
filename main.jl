@@ -715,3 +715,68 @@ for i = 1:1000000
 end
 
 # Solution = 276
+
+## Day 12: Passage Pathing ##
+#############################
+
+## Day 13: Transparent Origami ##
+#################################
+
+## Day 14: Extended Polymerization ##
+#####################################
+
+day14_test = readlines(open("test-14"))
+day14_input = readlines(open("input-14"))
+
+function polymer_rules(data)
+    # Skip the first two lines, then read the rest into a dictionary
+    rules = Dict()
+    for line in data[3:end]
+        rule = split(line, " -> ")
+        rules[rule[1]] = rule[2][1] # String -> Char
+    end
+    rules
+end
+
+@show polymer_rules(day14_test)
+
+function polymerize(polymer, rules, count)
+    if count == 0
+        return polymer
+    end
+
+    left = polymer[1]
+    result = [left]
+    for i = 2:length(polymer)
+        right = polymer[i]
+        key = String([left, right])
+        if key in keys(rules)
+            push!(result, rules[key])
+        end
+        push!(result, right)
+        left = right
+    end
+
+    polymerize(result, rules, count - 1)
+end
+
+function polymer_difference(data)
+    start_polymer = data[1]
+    rules = polymer_rules(data)
+    poly_10 = polymerize(start_polymer, rules, 10)
+
+    # Collect test_poly_10 into a dict and count the number of each letter
+    test_poly_10_dict = Dict()
+    for char in poly_10
+        if char in keys(test_poly_10_dict)
+            test_poly_10_dict[char] += 1
+        else
+            test_poly_10_dict[char] = 1
+        end
+    end
+
+    maximum(values(test_poly_10_dict)) - minimum(values(test_poly_10_dict))
+end
+
+@assert 1588 == @show polymer_difference(day14_test)
+@assert 2740 == @show polymer_difference(day14_input)
