@@ -719,6 +719,56 @@ end
 ## Day 12: Passage Pathing ##
 #############################
 
+day12_test_1 = readlines(open("test-12-1"))
+day12_test_2 = readlines(open("test-12-2"))
+day12_test_3 = readlines(open("test-12-3"))
+day12_input = readlines(open("input-12"))
+
+function cave_graph(lines::Vector{String})::Dict
+    graph = Dict()
+    for line in lines
+        m = match(r"([a-zA-Z]+)-([a-zA-Z]+)", line)
+        add_to_graph!(graph, m[1], m[2])
+        add_to_graph!(graph, m[2], m[1])
+    end
+    graph
+end
+
+function add_to_graph!(graph, from, to)
+    if !(from in keys(graph))
+        graph[from] = []
+    end
+    push!(graph[from], to)
+end
+
+is_big_cave(cave_name) = occursin(r"^[A-Z]+$", cave_name)
+
+function count_all_path(graph, from, seen = Set([from]))
+    if from == "end"
+        return 1
+    end
+
+    total = 0
+    next_nodes = graph[from]
+    for node in next_nodes
+        if !(node in seen)
+            if is_big_cave(node)
+                total += count_all_path(graph, node, seen)
+            else
+                my_seen = copy(seen)
+                push!(my_seen, node)
+                total += count_all_path(graph, node, my_seen)
+            end
+        end
+    end
+    total
+end
+
+@assert 10 == @show count_all_path(cave_graph(day12_test_1), "start")
+@assert 19 == @show count_all_path(cave_graph(day12_test_2), "start")
+@assert 226 == @show count_all_path(cave_graph(day12_test_3), "start")
+@assert 3802 == @show count_all_path(cave_graph(day12_input), "start")
+
 ## Day 13: Transparent Origami ##
 #################################
 
