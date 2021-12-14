@@ -743,7 +743,7 @@ end
 
 is_big_cave(cave_name) = occursin(r"^[A-Z]+$", cave_name)
 
-function count_all_path(graph, from, seen = Set([from]))
+function count_all_path(graph, from, with_time = false, seen = Set([from]))
     if from == "end"
         return 1
     end
@@ -753,12 +753,15 @@ function count_all_path(graph, from, seen = Set([from]))
     for node in next_nodes
         if !(node in seen)
             if is_big_cave(node)
-                total += count_all_path(graph, node, seen)
+                total += count_all_path(graph, node, with_time, seen)
             else
                 my_seen = copy(seen)
                 push!(my_seen, node)
-                total += count_all_path(graph, node, my_seen)
+                total += count_all_path(graph, node, with_time, my_seen)
             end
+        elseif with_time && node != "start" # Node is already seen but we still have time
+            @assert !is_big_cave(node)
+            total += count_all_path(graph, node, false, seen)
         end
     end
     total
@@ -768,6 +771,12 @@ end
 @assert 19 == @show count_all_path(cave_graph(day12_test_2), "start")
 @assert 226 == @show count_all_path(cave_graph(day12_test_3), "start")
 @assert 3802 == @show count_all_path(cave_graph(day12_input), "start")
+
+@assert 36 == @show count_all_path(cave_graph(day12_test_1), "start", true)
+@assert 103 == @show count_all_path(cave_graph(day12_test_2), "start", true)
+@assert 3509 == @show count_all_path(cave_graph(day12_test_3), "start", true)
+@assert 99448 == @show count_all_path(cave_graph(day12_input), "start", true)
+
 
 ## Day 13: Transparent Origami ##
 #################################
