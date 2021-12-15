@@ -899,3 +899,101 @@ end
 
 @assert 2188189693529 == @show polymer_score(day14_test, 40)
 @assert 2959788056211 == @show polymer_score(day14_input, 40)
+
+
+## Day 15: Chiton ##
+####################
+
+# Looks like I "just" need to apply a pathfinding algorithm.
+
+day15_test = readlines(open("test-15"))
+day15_input = readlines(open("input-15"))
+
+function square_digit_inupt(lines::Vector{String})::Array{Int,2}
+    w = length(lines[1])
+    h = length(lines)
+    result = zeros(Int, w, h)
+    for x = 1:w, y = 1:h
+        result[x, y] = parse(Int, lines[y][x])
+    end
+    result
+end
+
+function shortest_path(risk_map)
+    infinity = length(risk_map) * 9
+
+    initial = (1, 1)
+    unvisited = Set([(x, y) for x = 1:size(risk_map, 1) for y = 1:size(risk_map, 2)])
+    tentative_distances = fill(infinity, size(risk_map))
+    tentative_distances[initial...] = 0
+
+    todo_map = Dict(0 => [initial])
+
+    current = initial
+    while true
+        # Find a node with the lowest tentative distance that is unvisited
+        while !(current in unvisited)
+            # Find first entry in todo_map
+            lowest_key = minimum(keys(todo_map))
+            places_with_lowest_key = todo_map[lowest_key]
+            current = pop!(places_with_lowest_key)
+            if length(places_with_lowest_key) == 0
+                delete!(todo_map, lowest_key)
+            end
+        end
+
+        if current == size(risk_map)
+            return tentative_distances[current...]
+        end
+
+        # Mark neiboors as visited
+        for nbh in nbhd4(current, size(risk_map))
+            distance_through_current = tentative_distances[current...] + risk_map[nbh...]
+            if distance_through_current < tentative_distances[nbh...]
+                tentative_distances[nbh...] = distance_through_current
+                places_with_same_key = get!(todo_map, distance_through_current, [])
+                push!(places_with_same_key, nbh)
+                todo_map[distance_through_current] = places_with_same_key
+            end
+        end
+        delete!(unvisited, current)
+    end
+end
+
+function nbhd4(pos, dims)
+    nbhs = []
+    if pos[1] > 1
+        push!(nbhs, (pos[1] - 1, pos[2]))
+    end
+    if pos[2] > 1
+        push!(nbhs, (pos[1], pos[2] - 1))
+    end
+    if pos[1] < dims[1]
+        push!(nbhs, (pos[1] + 1, pos[2]))
+    end
+    if pos[2] < dims[2]
+        push!(nbhs, (pos[1], pos[2] + 1))
+    end
+    nbhs
+end
+
+@assert 40 == @show shortest_path(square_digit_inupt(day15_test))
+@assert 707 == @show shortest_path(square_digit_inupt(day15_input))
+
+# Increase the map size by 5 times in each direction
+function bigger_risk_map(risk_map)
+    result = zeros(Int, size(risk_map) .* 5)
+    w = size(risk_map, 1)
+    h = size(risk_map, 2)
+    for x1 = 1:w, y1 = 1:h
+        for x2 = 0:4, y2 = 0:4
+            v = risk_map[x1, y1] + x2 + y2
+            result[x1+w*x2, y1+h*y2] = v <= 9 ? v : v - 9
+        end
+    end
+    result
+end
+
+@assert 315 == @show shortest_path(bigger_risk_map(square_digit_inupt(day15_test)))
+@assert 2942 == @show shortest_path(bigger_risk_map(square_digit_inupt(day15_input)))
+
