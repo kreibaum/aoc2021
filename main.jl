@@ -997,3 +997,58 @@ end
 @assert 315 == @show shortest_path(bigger_risk_map(square_digit_inupt(day15_test)))
 @assert 2942 == @show shortest_path(bigger_risk_map(square_digit_inupt(day15_input)))
 
+
+## Day 17: Trick Shot ##
+########################
+
+day17_test = Dict(:x1 => 20, :x2 => 30, :y1 => -10, :y2 => -5)
+day17_input = Dict(:x1 => 265, :x2 => 287, :y1 => -103, :y2 => -58)
+
+# How to stop x inside the rectange?
+# x-dist(x0) = x0 * (x0+1) / 2
+
+triangle(x) = x * (x + 1) / 2
+
+# Test x-rest-inside for x = {6, 7}
+# Input x-rest-inside for x = 23
+# Firing with y = {8, 9} should make it pass through the rectangle
+# ((276, 276) .- (103, 58)) ./ 23 = (7.521739130434782, 9.478260869565217)
+
+# So I try (23, 9) how high do I get? => Would be 45, which is not the correct answer.
+
+# Since x is now resting, I can fire y arbitrarily strong to try and end back inside.
+# Should be -103 -> (23, 102).
+
+@assert 5253 == @show triangle(102) # Day 16 part 1.
+
+# Part 2, now with actual programming :P
+
+# Test: x min must be at least x-rest-inside. So x >= 6 for test, x >= 23 for input.
+# IMHO, the "rest inside" cases are special, because y has arbitrary time to hit.
+
+function ends_inside(dx, dy, rect)
+    x, y = (0, 0)
+    while true
+        # Move
+        x += dx
+        y += dy
+        # Check
+        if x >= rect[:x1] && x <= rect[:x2] && y >= rect[:y1] && y <= rect[:y2]
+            return true
+        elseif x > rect[:x2] || y < rect[:y1] # No chance of hitting the rectangle
+            return false
+        end
+        # Accelerate
+        if dx > 0
+            dx -= 1
+        elseif dx < 0
+            dx += 1
+        end
+        dy -= 1
+    end
+end
+
+# Test the ends_inside function.
+include("assertEndsInside.jl")
+
+@assert 1770 == @show sum([ends_inside(x, y, day17_input) for y = -103:102, x = 1:287])
