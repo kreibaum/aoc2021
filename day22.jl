@@ -57,67 +57,42 @@ struct Cube
     z2::Int
 end
 
+function cube_size(cube::Cube)::Int
+    # (x2 - x1 + 1) * (y2 - y1 + 1) * (z2 - z1 + 1)
+    (cube.x2 - cube.x1 + 1) * (cube.y2 - cube.y1 + 1) * (cube.z2 - cube.z1 + 1)
+end
+
 # I is enough to know how to turn cubes off with conflict resolution, because
 # to turn a cube on, I can also turn it off first and then turn it on again.
 
 function run(instrs::Vector{Instr})::Int
     cubes = []
+    for instr in instrs
+        instr_cube = Cube(instr.x1, instr.x2, instr.y1, instr.y2, instr.z1, instr.z2)
+        new_cubes = []
+        for plus_cube in cubes
+            sub_cubes = turn_off(plus_cube, instr_cube)
+            append!(new_cubes, sub_cubes)
+        end
+        if instr.is_on
+            push!(new_cubes, instr_cube)
+        end
+        cubes = new_cubes
+    end
+    sum(cube_size.(cubes))
 end
 
 function turn_off(plus_cube::Cube, minus_cube::Cube)::Vector{Cube}
-    # The minus cube cuts the space into 6 (partially infinite) regions
-    # for each such region we just intersect the plus cube with the region.
-    result = []
-    # Region (-inf:x1, -, -) where - = -inf:inf
-    if plus_cube.x1 < minus_cube.x1
-        push!(result, Cube(plus_cube.x1, min(minus_cube.x1, plus_cube.x2), plus_cube.y1, plus_cube.y2, plus_cube.z1, plus_cube.z2))
-    end
-    # Region (x2:inf, -, -) where - = -inf:inf
-    if plus_cube.x2 > minus_cube.x2
-        push!(result, Cube(max(minus_cube.x2, plus_cube.x1), plus_cube.x2, plus_cube.y1, plus_cube.y2, plus_cube.z1, plus_cube.z2))
-    end
-    # Region (x1:x2, -inf:y1, -) where - = -inf:inf
-    # Region (x1:x2, y2:inf, -) where - = -inf:inf
-    # First check if there is at least a x direction overlap.
-    if plus_cube.x1 < minus_cube.x2 && plus_cube.x2 > minus_cube.x1
-        # Now the y direction, -inf:y1 first
-        if plus_cube.y1 < minus_cube.y1
-            push!(result, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), plus_cube.y1, min(minus_cube.y1, plus_cube.y2), plus_cube.z1, plus_cube.z2))
-        end
-        # Region (x1:x2, y2:inf, -) where - = -inf:inf
-        if plus_cube.y2 > minus_cube.y2
-            push!(result, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y2, plus_cube.y1), plus_cube.y2, plus_cube.z1, plus_cube.z2))
-        end
-        # Region (x1:x2, y1:y2, -inf:z1) where - = -inf:inf
-        # Region (x1:x2, y1:y2, z2:inf) where - = -inf:inf
-        # First check if there is at least a y direction overlap.
-        if plus_cube.y1 < minus_cube.y2 && plus_cube.y2 > minus_cube.y1
-            # Now the z direction, -inf:z1 first
-            if plus_cube.z1 < minus_cube.z1
-                push!(result, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y1, plus_cube.y1), min(minus_cube.y2, plus_cube.y2), plus_cube.z1, min(minus_cube.z1, plus_cube.z2)))
-            end
-            # Region (x1:x2, y1:y2, z2:inf) where - = -inf:inf
-            if plus_cube.z2 > minus_cube.z2
-                push!(result, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y1, plus_cube.y1), min(minus_cube.y2, plus_cube.y2), max(minus_cube.z2, plus_cube.z1), plus_cube.z2))
-            end
-        end
-    end
-    # Idea: Possibly this method could be rewritten by simply creating all cubes
-    # and then dropping degenerate ones.
-    result
-end
-
-function turn_off2(plus_cube::Cube, minus_cube::Cube)::Vector{Cube}
     result1 = []
-    push!(result1, Cube(plus_cube.x1, min(minus_cube.x1, plus_cube.x2), plus_cube.y1, plus_cube.y2, plus_cube.z1, plus_cube.z2))
-    push!(result1, Cube(max(minus_cube.x2, plus_cube.x1), plus_cube.x2, plus_cube.y1, plus_cube.y2, plus_cube.z1, plus_cube.z2))
-    push!(result1, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), plus_cube.y1, min(minus_cube.y1, plus_cube.y2), plus_cube.z1, plus_cube.z2))
-    push!(result1, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y2, plus_cube.y1), plus_cube.y2, plus_cube.z1, plus_cube.z2))
-    push!(result1, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y1, plus_cube.y1), min(minus_cube.y2, plus_cube.y2), plus_cube.z1, min(minus_cube.z1, plus_cube.z2)))
-    push!(result1, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y1, plus_cube.y1), min(minus_cube.y2, plus_cube.y2), max(minus_cube.z2, plus_cube.z1), plus_cube.z2))
+    push!(result1, Cube(plus_cube.x1, min(minus_cube.x1 - 1, plus_cube.x2), plus_cube.y1, plus_cube.y2, plus_cube.z1, plus_cube.z2))
+    push!(result1, Cube(max(minus_cube.x2 + 1, plus_cube.x1), plus_cube.x2, plus_cube.y1, plus_cube.y2, plus_cube.z1, plus_cube.z2))
+    push!(result1, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), plus_cube.y1, min(minus_cube.y1 - 1, plus_cube.y2), plus_cube.z1, plus_cube.z2))
+    push!(result1, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y2 + 1, plus_cube.y1), plus_cube.y2, plus_cube.z1, plus_cube.z2))
+    push!(result1, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y1, plus_cube.y1), min(minus_cube.y2, plus_cube.y2), plus_cube.z1, min(minus_cube.z1 - 1, plus_cube.z2)))
+    push!(result1, Cube(max(minus_cube.x1, plus_cube.x1), min(minus_cube.x2, plus_cube.x2), max(minus_cube.y1, plus_cube.y1), min(minus_cube.y2, plus_cube.y2), max(minus_cube.z2 + 1, plus_cube.z1), plus_cube.z2))
     result = []
     for cube in result1
-        if cube.x1 < cube.x2 && cube.y1 < cube.y2 && cube.z1 < cube.z2
+        if cube.x1 <= cube.x2 && cube.y1 <= cube.y2 && cube.z1 <= cube.z2
             push!(result, cube)
         end
     end
@@ -133,10 +108,16 @@ function random_cube()::Cube
     cube
 end
 
-function fuzz_methods()
-    for _ = 1:1000
-        plus_cube = random_cube()
-        minus_cube = random_cube()
-        @assert turn_off(plus_cube, minus_cube) == turn_off2(plus_cube, minus_cube)
-    end
-end
+test2 = readlines(open("test-22-2"))
+@assert 2758514936282235 == run(parse_line.(test2))
+#@show run(parse_line.(input))
+
+# Error 1292063059899010 is higher than the expected value.
+# Also, my test result of 2759445304032930 is still off by 0.03%.
+
+# Likely also wrong: 1288698231555214
+
+# After fixing the "1 wide cubes removed" bug: 1288707160324706
+
+# First wrong result was 0.2% off.
+# Second wrong result was 0.0007% off.
