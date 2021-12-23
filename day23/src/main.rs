@@ -40,7 +40,7 @@ use pathfinding::directed::astar::astar;
 //   #C#C#B#B#
 //   #########
 
-const DEPTH: usize = 2;
+const DEPTH: usize = 4;
 
 // #############
 // #12.3.4.5.67#
@@ -259,17 +259,7 @@ fn nbhd(cave: &Cave) -> Vec<(Cave, usize)> {
     // This means if we find only one such move, we should only return only this.
 
     for hallway_location in 0..7 {
-        println!("Checking hallway {}", hallway_location);
         let amphipod = cave.hallway(hallway_location);
-        println!("amphipod > 0: {}", amphipod > 0);
-        println!(
-            "cave.room_ready_for_move_in(amphipod as usize): {}",
-            amphipod > 0 && cave.room_ready_for_move_in(amphipod as usize)
-        );
-        println!(
-            "cave.open_hallway_path(amphipod as usize, hallway_location): {}",
-            amphipod > 0 && cave.open_hallway_path(amphipod as usize, hallway_location)
-        );
         if amphipod > 0
             && cave.room_ready_for_move_in(amphipod as usize)
             && cave.open_hallway_path(amphipod as usize, hallway_location)
@@ -283,8 +273,6 @@ fn nbhd(cave: &Cave) -> Vec<(Cave, usize)> {
         }
     }
 
-    println!("Starting move out phase.");
-
     // If we end up here, no one can move in and we need to generate all possible
     // movements of amphipods outside their homes.
     let mut result = Vec::new();
@@ -293,13 +281,11 @@ fn nbhd(cave: &Cave) -> Vec<(Cave, usize)> {
         // Check if there is a foreign amphipod in this room.
         if cave.room_ready_for_move_in(room) {
             // No foreigen amphipod, so we don't need to move out.
-            println!("No foreign amphipod in room {}", room);
             continue;
         }
         let amphipod = cave.top(room);
         // Find the spaces above the room that we can move out to.
         let (l, r) = cave.reachable(room);
-        println!("{} {} {}", l, r, amphipod);
         for i in l..=r {
             // We can move into this space.
             let mut new_cave = cave.clone();
@@ -337,9 +323,38 @@ fn success(cave: &Cave) -> bool {
 }
 
 fn main() {
-    println!("Hello, world!");
+    // Part 1:
+    // #############
+    // #...........#
+    // ###D#A#A#D###
+    //   #C#C#B#B#
+    //   #########
+    // let cave = Cave([0, 0, 0, 0, 0, 0, 0, 4, 3, 1, 3, 1, 2, 4, 2]);
+
+    // #############
+    // #...........#
+    // ###D#A#A#D###
+    //   #D#C#B#A#
+    //   #D#B#A#C#
+    //   #C#C#B#B#
+    //   #########
+    let cave = Cave([
+        0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 3, 1, 3, 2, 3, 1, 2, 1, 2, 4, 1, 3, 2,
+    ]);
+
+    let solution = astar(
+        &cave,
+        |cave| nbhd(cave),
+        |cave| heuristic1(cave),
+        // |_cave| 0,
+        |cave| success(cave),
+    )
+    .expect("No path found.");
+
+    println!("Part 2 costs {} energy.", solution.1);
 }
 
+/* // Only enable this when DEPTH == 2.
 // Test this module.
 #[cfg(test)]
 mod test {
@@ -500,4 +515,25 @@ mod test {
             Cave([0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
         );
     }
+
+    #[test]
+    fn test_puzzle_part1() {
+        // #############
+        // #...........#
+        // ###D#A#A#D###
+        //   #C#C#B#B#
+        //   #########
+        let cave = Cave([0, 0, 0, 0, 0, 0, 0, 4, 3, 1, 3, 1, 2, 4, 2]);
+        let solution = astar(
+            &cave,
+            |cave| nbhd(cave),
+            |cave| heuristic1(cave),
+            |cave| success(cave),
+        )
+        .expect("No path found.");
+
+        assert_eq!(solution.1, 14467);
+    }
 }
+
+*/
