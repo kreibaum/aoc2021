@@ -80,24 +80,31 @@ impl Cave {
     fn open_hallway_path(&self, room: usize, hallway_location: usize) -> bool {
         debug_assert!(0 < room && room < 5);
         debug_assert!(hallway_location < 7);
-        let mut left_open = true;
-        for i in (hallway_location + 1)..=EXIT_L[room] {
-            if self.hallway(i) != 0 {
-                left_open = false;
-                break;
+
+        let l = EXIT_L[room];
+        let r = EXIT_R[room];
+
+        if hallway_location <= l {
+            for i in (hallway_location + 1)..=l {
+                if self.hallway(i) != 0 {
+                    return false;
+                }
             }
-        }
-        if left_open {
             return true;
         }
-        let mut right_open = true;
-        for i in EXIT_R[room]..=(hallway_location - 1) {
-            if self.hallway(i) != 0 {
-                right_open = false;
-                break;
+
+        if hallway_location >= r {
+            for i in r..hallway_location {
+                if self.hallway(i) != 0 {
+                    return false;
+                }
             }
+            return true;
         }
-        right_open
+        panic!(
+            "Range related internal error in open_hallway_path({:?}, {}, {})",
+            self, room, hallway_location
+        );
     }
 
     fn hallway(&self, i: usize) -> u8 {
@@ -127,12 +134,63 @@ impl Cave {
         }
         panic!("Tried to push room {} into a full room", room);
     }
+
+    // Removes the top amphipod from the room and returns the step count used.
+    fn pop_room(&mut self, room: usize) -> usize {
+        debug_assert!(0 < room && room < 5);
+        let doorstep = 7 + (room - 1) * DEPTH - 1; // Not a real index, but becomes one +1.
+        for steps in 1..=DEPTH {
+            if self.0[doorstep + steps] != 0 {
+                self.0[doorstep + steps] = 0;
+                return steps;
+            }
+        }
+        panic!("Tried to pop room {} from an empty room", room);
+    }
+
+    // Returns the top amphipod in the room.
+    // You should only need to call this if you already made sure that there
+    // are foreign amphipods in the room.
+    fn top(&self, room: usize) -> u8 {
+        debug_assert!(0 < room && room < 5);
+        for seat in 0..DEPTH {
+            let amphipod = self.room(room, seat);
+            if amphipod != 0 {
+                return amphipod;
+            }
+        }
+        panic!(
+            "Tried to get top amphipod in room {} but there were none",
+            room
+        );
+    }
+
+    fn reachable(&self, room: usize) -> (usize, usize) {
+        debug_assert!(0 < room && room < 5);
+        let mut l = EXIT_R[room];
+        for i in (0..=EXIT_L[room]).rev() {
+            if self.hallway(i) == 0 {
+                l = i;
+            } else {
+                break;
+            }
+        }
+        let mut r = EXIT_L[room];
+        for i in EXIT_R[room]..7 {
+            if self.hallway(i) == 0 {
+                r = i;
+            } else {
+                break;
+            }
+        }
+        (l, r)
+    }
 }
 
 fn heuristic1(cave: &Cave) -> usize {
     let mut total = 0;
     // For each Amphipod in the hallway, calculate how long it will take home.
-    for i in 0..6 {
+    for i in 0..7 {
         let amphipod = cave.0[i];
         if amphipod > 0 {
             total += center_steps(amphipod, i) * step_cost(amphipod);
@@ -158,6 +216,9 @@ fn heuristic1(cave: &Cave) -> usize {
     }
     // Now everything is at the bottom which is incorrect. We correct this by
     // substracting a constant.
+    if total < DEPTH * (DEPTH - 1) / 2 * 1111 {
+        panic!("Heuristic 1 is wrong for {:?}", cave);
+    }
     total -= DEPTH * (DEPTH - 1) / 2 * 1111;
 
     // For the better heuristic, we can also take into account that amphipods
@@ -198,7 +259,17 @@ fn nbhd(cave: &Cave) -> Vec<(Cave, usize)> {
     // This means if we find only one such move, we should only return only this.
 
     for hallway_location in 0..7 {
+        println!("Checking hallway {}", hallway_location);
         let amphipod = cave.hallway(hallway_location);
+        println!("amphipod > 0: {}", amphipod > 0);
+        println!(
+            "cave.room_ready_for_move_in(amphipod as usize): {}",
+            amphipod > 0 && cave.room_ready_for_move_in(amphipod as usize)
+        );
+        println!(
+            "cave.open_hallway_path(amphipod as usize, hallway_location): {}",
+            amphipod > 0 && cave.open_hallway_path(amphipod as usize, hallway_location)
+        );
         if amphipod > 0
             && cave.room_ready_for_move_in(amphipod as usize)
             && cave.open_hallway_path(amphipod as usize, hallway_location)
@@ -212,15 +283,58 @@ fn nbhd(cave: &Cave) -> Vec<(Cave, usize)> {
         }
     }
 
-    // If we end up here, noone can move in and we need to generate all possible
+    println!("Starting move out phase.");
+
+    // If we end up here, no one can move in and we need to generate all possible
     // movements of amphipods outside their homes.
-    todo!();
+    let mut result = Vec::new();
+    for room in 1..=4 {
+        // Rooms are 1-indexed
+        // Check if there is a foreign amphipod in this room.
+        if cave.room_ready_for_move_in(room) {
+            // No foreigen amphipod, so we don't need to move out.
+            println!("No foreign amphipod in room {}", room);
+            continue;
+        }
+        let amphipod = cave.top(room);
+        // Find the spaces above the room that we can move out to.
+        let (l, r) = cave.reachable(room);
+        println!("{} {} {}", l, r, amphipod);
+        for i in l..=r {
+            // We can move into this space.
+            let mut new_cave = cave.clone();
+            let mut steps = center_steps(room as u8, i);
+            new_cave.set_hallway(i, amphipod);
+            steps += new_cave.pop_room(room);
+            result.push((new_cave, steps * step_cost(amphipod)));
+        }
+    }
+    result
 }
 
 // Where do you end up if you move out of a room and take a step to the left?
 const EXIT_L: [usize; 5] = [666, 1, 2, 3, 4];
 // Where do you end up if you move out of a room and take a step to the right?
 const EXIT_R: [usize; 5] = [666, 2, 3, 4, 5];
+
+fn success(cave: &Cave) -> bool {
+    // Check if everything is where it should be.
+    // Hallway must be only 0s.
+    for i in 0..7 {
+        if cave.hallway(i) != 0 {
+            return false;
+        }
+    }
+    // All the rooms must be filled with corresponding amphipods.
+    for room in 1..=4 {
+        for seat in 0..DEPTH {
+            if cave.room(room, seat) != room as u8 {
+                return false;
+            }
+        }
+    }
+    true
+}
 
 fn main() {
     println!("Hello, world!");
@@ -266,7 +380,18 @@ mod test {
     }
 
     #[test]
-    fn test_nbhd2() {
+    fn test_heuristic3() {
+        // #############
+        // #.. . . C .D#
+        // ###A#B#.#.###
+        //   #A#B#C#D#
+        //   #########
+        let cave = Cave([0, 0, 0, 0, 3, 0, 4, 1, 1, 2, 2, 0, 3, 0, 4]);
+        assert_eq!(heuristic1(&cave), 3200);
+    }
+
+    #[test]
+    fn test_nbhd1() {
         // #############
         // #.._D_._._..#
         // ###A#B#C#.###
@@ -277,5 +402,102 @@ mod test {
         assert_eq!(nbhd.len(), 1);
         assert_eq!(nbhd[0].1, 6000);
         assert_eq!(nbhd[0].0, TARGET);
+    }
+
+    #[test]
+    fn test_nbhd2() {
+        // #############
+        // #.._D_._._..#
+        // ###A#B#.#D###
+        //   #A#B#C#C#
+        //   #########
+        let cave = Cave([0, 0, 4, 0, 0, 0, 0, 1, 1, 2, 2, 0, 3, 4, 3]);
+
+        assert_eq!(cave.reachable(4), (3, 6));
+
+        let nbhd = nbhd(&cave);
+        assert_eq!(nbhd.len(), 4);
+        assert_eq!(nbhd[0].1, 4000);
+        assert_eq!(nbhd[1].1, 2000);
+        assert_eq!(nbhd[2].1, 2000);
+        assert_eq!(nbhd[3].1, 3000);
+    }
+
+    #[test]
+    fn test_nbhd3() {
+        // #############
+        // #.._D_._C_D.#
+        // ###A#B#.#.###
+        //   #A#B#C#.#
+        //   #########
+        let cave = Cave([0, 0, 4, 0, 3, 4, 0, 1, 1, 2, 2, 0, 3, 0, 0]);
+        assert_eq!(cave.reachable(3), (3, 3));
+
+        assert!(!cave.open_hallway_path(4, 2));
+        assert!(cave.open_hallway_path(3, 4));
+        assert!(cave.open_hallway_path(4, 5));
+
+        let nbhd = nbhd(&cave);
+        assert_eq!(nbhd.len(), 1);
+        assert_eq!(nbhd[0].1, 200);
+    }
+
+    #[test]
+    fn test_success() {
+        assert!(success(&TARGET));
+
+        let cave = Cave([0, 0, 4, 0, 0, 0, 0, 1, 1, 2, 2, 0, 3, 4, 3]);
+        assert!(!success(&cave));
+
+        let cave = Cave([0, 0, 0, 0, 0, 0, 0, 4, 3, 1, 3, 1, 2, 4, 2]);
+        assert!(!success(&cave));
+    }
+
+    #[test]
+    // #[ignore = "reason"]
+    fn test_mini_search() {
+        // #############
+        // #.._D_._._..#
+        // ###A#B#.#D###
+        //   #A#B#C#C#
+        //   #########
+        let cave = Cave([0, 0, 4, 0, 0, 0, 0, 1, 1, 2, 2, 0, 3, 4, 3]);
+        let solution = astar(
+            &cave,
+            |cave| nbhd(cave),
+            |cave| heuristic1(cave),
+            |cave| success(cave),
+        )
+        .expect("No path found.");
+
+        println!("{:?}", solution);
+
+        assert_eq!(solution.0.len(), 6);
+        assert_eq!(solution.1, 11500);
+
+        assert_eq!(
+            solution.0[0],
+            Cave([0, 0, 4, 0, 0, 0, 0, 1, 1, 2, 2, 0, 3, 4, 3])
+        );
+        assert_eq!(
+            solution.0[1],
+            Cave([0, 0, 4, 0, 0, 4, 0, 1, 1, 2, 2, 0, 3, 0, 3])
+        );
+        assert_eq!(
+            solution.0[2],
+            Cave([0, 0, 4, 0, 3, 4, 0, 1, 1, 2, 2, 0, 3, 0, 0])
+        );
+        assert_eq!(
+            solution.0[3],
+            Cave([0, 0, 4, 0, 0, 4, 0, 1, 1, 2, 2, 3, 3, 0, 0])
+        );
+        assert_eq!(
+            solution.0[4],
+            Cave([0, 0, 0, 0, 0, 4, 0, 1, 1, 2, 2, 3, 3, 0, 4])
+        );
+        assert_eq!(
+            solution.0[5],
+            Cave([0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        );
     }
 }
